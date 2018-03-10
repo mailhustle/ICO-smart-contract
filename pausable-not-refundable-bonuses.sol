@@ -623,18 +623,17 @@ contract MailhustleToken is MintableToken, PausableToken {
  * The way to add new features to a base crowdsale is by multiple inheritance.
  * In this example we are providing following extensions:
  * CappedCrowdsale - sets a max boundary for raised funds
- * RefundableCrowdsale - set a min goal to be reached and returns funds if it's not met
  *
  * After adding multiple features it's good practice to run integration tests
  * to ensure that subcontracts works together as intended.
  */
-contract MailhustleCrowdsale is CappedCrowdsale, RefundableCrowdsale, MintedCrowdsale {
+contract MailhustleCrowdsale is CappedCrowdsale, MintedCrowdsale, TimedCrowdsale {
     
   uint256 _openingTime = 1520276997;
   uint256 _closingTime = 1546228800;
   uint256 _rate = 1000;
   address _wallet = 0x85A363699C6864248a6FfCA66e4a1A5cCf9f5567;
-  uint256 _cap = 250000000000000000000; // 250 ETH in wei (hard cap)
+  uint256 _cap = 250 ether;
   MintableToken _token = new MailhustleToken();
 
   function MailhustleCrowdsale() public
@@ -642,8 +641,37 @@ contract MailhustleCrowdsale is CappedCrowdsale, RefundableCrowdsale, MintedCrow
     CappedCrowdsale(_cap)
     TimedCrowdsale(_openingTime, _closingTime)
   {
-    //As goal needs to be met for a successful crowdsale
-    //the value needs to less or equal than a cap which is limit for accepted funds
-    require(_goal <= _cap);
+      
   }
+
+  function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
+
+
+    // We are in so early days, floating point operations are not quite there yet: https://ethereum.stackexchange.com/questions/8674/how-can-i-perform-float-type-division-in-solidity
+    // So instead rather than doing x3.5 we need to x7 and then /2 (YES, multiply by 7 and then divide by 2)
+
+    uint16 multiply;
+    uint16 divide = 2;
+
+    // 0-50    4x
+    // 50-100  3.5x
+    // 100-150 3x
+    // 150-200 2.5x
+    // 200-250 2x
+
+    if (weiRaised < 1 ether) {
+      multiply = 8;
+    } else if (weiRaised < 2 ether) {
+      multiply = 7;
+    } else if (weiRaised < 3 ether) {
+      multiply = 6;
+    } else if (weiRaised < 4 ether) {
+      multiply = 5;
+    } else {
+      multiply = 4;
+    }
+
+    return _weiAmount.mul(rate).mul(multiply).div(divide);
+  }
+
 }
