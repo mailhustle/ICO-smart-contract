@@ -628,6 +628,7 @@ contract MailhustleToken is MintableToken, PausableToken {
  * to ensure that subcontracts works together as intended.
  */
 contract MailhustleCrowdsale is CappedCrowdsale, MintedCrowdsale, TimedCrowdsale {
+  using SafeMath for uint256;
     
   uint256 _openingTime = 1520276997;
   uint256 _closingTime = 1546228800;
