@@ -207,12 +207,7 @@ contract Ownable {
    * @dev Throws if called by any account other than the owner.
    */
   modifier onlyOwner() {
-
-    // GODMODE. Token deployed from Crowdsale
-    // Need to pause it.
-    // Need to pause it because we don't want them to float randomly all over the place
-
-    require(msg.sender == owner || msg.sender == 0x85A363699C6864248a6FfCA66e4a1A5cCf9f5567);
+    require(msg.sender == owner);
     _;
   }
 
@@ -225,14 +220,54 @@ contract Ownable {
     OwnershipTransferred(owner, newOwner);
     owner = newOwner;
   }
+}
 
+contract MultiOwnable {
+
+    mapping (address => bool) public isOwner;
+    address[] public ownerHistory;
+
+    event OwnerAddedEvent(address indexed _newOwner);
+    event OwnerRemovedEvent(address indexed _oldOwner);
+
+    function MultiOwnable() public {
+        // Add default owner
+        address owner = msg.sender;
+        ownerHistory.push(owner);
+        isOwner[owner] = true;
+    }
+
+    modifier onlyOwner() {
+        require(isOwner[msg.sender]);
+        _;
+    }
+    
+    function ownerHistoryCount() public view returns (uint) {
+        return ownerHistory.length;
+    }
+
+    /** Add extra owner. */
+    function addOwner(address owner) onlyOwner public {
+        require(owner != address(0));
+        require(!isOwner[owner]);
+        ownerHistory.push(owner);
+        isOwner[owner] = true;
+        OwnerAddedEvent(owner);
+    }
+
+    /** Remove extra owner. */
+    function removeOwner(address owner) onlyOwner public {
+        require(isOwner[owner]);
+        isOwner[owner] = false;
+        OwnerRemovedEvent(owner);
+    }
 }
 
 /**
  * @title Pausable
  * @dev Base contract which allows children to implement an emergency stop mechanism.
  */
-contract Pausable is Ownable {
+contract Pausable is MultiOwnable {
   event Pause();
   event Unpause();
 
@@ -302,7 +337,7 @@ contract PausableToken is StandardToken, Pausable {
  * @dev Issue: * https://github.com/OpenZeppelin/zeppelin-solidity/issues/120
  * Based on code by TokenMarketNet: https://github.com/TokenMarketNet/ico/blob/master/contracts/MintableToken.sol
  */
-contract MintableToken is StandardToken, Ownable {
+contract MintableToken is StandardToken, MultiOwnable {
   event Mint(address indexed to, uint256 amount);
   event MintFinished();
 
@@ -526,7 +561,7 @@ contract TimedCrowdsale is Crowdsale {
 
 }
 
-contract FinalizableCrowdsale is TimedCrowdsale, Ownable {
+contract FinalizableCrowdsale is TimedCrowdsale, MultiOwnable {
   using SafeMath for uint256;
 
   bool public isFinalized = false;
@@ -633,8 +668,8 @@ contract MailhustleCrowdsale is CappedCrowdsale, MintedCrowdsale, TimedCrowdsale
   uint256 _openingTime = 1520276997;
   uint256 _closingTime = 1546228800;
   uint256 _rate = 1000;
-  address _wallet = 0x85A363699C6864248a6FfCA66e4a1A5cCf9f5567;
-  uint256 _cap = 250 ether;
+  address _wallet = 0xDB2f9f086561D378D8d701feDd5569B515F9e7f7; // Gnosis multisig: https://etherscan.io/address/0xdb2f9f086561d378d8d701fedd5569b515f9e7f7#code
+  uint256 _cap = 1000 ether;
   MintableToken _token = new MailhustleToken();
 
   function MailhustleCrowdsale() public
