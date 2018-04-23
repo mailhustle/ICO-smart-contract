@@ -1,6 +1,5 @@
 pragma solidity ^0.4.18;
 
-
 library SafeMath {
 
   /**
@@ -188,39 +187,40 @@ contract StandardToken is ERC20, BasicToken {
 
 }
 
-contract Ownable {
-  address public owner;
+// NOT USING - using multiownable instead
+// contract Ownable {
+//   address public owner;
 
 
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+//   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
 
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  function Ownable() public {
-    owner = msg.sender;
-  }
+//   /**
+//    * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+//    * account.
+//    */
+//   function Ownable() public {
+//     owner = msg.sender;
+//   }
 
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
+//   /**
+//    * @dev Throws if called by any account other than the owner.
+//    */
+//   modifier onlyOwner() {
+//     require(msg.sender == owner);
+//     _;
+//   }
 
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
-  }
-}
+//   /**
+//    * @dev Allows the current owner to transfer control of the contract to a newOwner.
+//    * @param newOwner The address to transfer ownership to.
+//    */
+//   function transferOwnership(address newOwner) public onlyOwner {
+//     require(newOwner != address(0));
+//     OwnershipTransferred(owner, newOwner);
+//     owner = newOwner;
+//   }
+// }
 
 contract MultiOwnable {
 
@@ -535,7 +535,7 @@ contract TimedCrowdsale is Crowdsale {
    * @param _closingTime Crowdsale closing time
    */
   function TimedCrowdsale(uint256 _openingTime, uint256 _closingTime) public {
-    // require(_openingTime >= now);
+    // require(_openingTime >= now); // 
     require(_closingTime >= _openingTime);
 
     openingTime = _openingTime;
@@ -666,7 +666,7 @@ contract MailhustleCrowdsale is CappedCrowdsale, MintedCrowdsale, TimedCrowdsale
   using SafeMath for uint256;
     
   uint256 _openingTime = 1520276997;
-  uint256 _closingTime = 1546228800;
+  uint256 _closingTime = 1546214400; // + new Date(2018,11,31) // and remove three zeros because of JavaScript milliseconds
   uint256 _rate = 1000;
   address _wallet = 0xDB2f9f086561D378D8d701feDd5569B515F9e7f7; // Gnosis multisig: https://etherscan.io/address/0xdb2f9f086561d378d8d701fedd5569b515f9e7f7#code
   uint256 _cap = 1000 ether;
@@ -682,32 +682,38 @@ contract MailhustleCrowdsale is CappedCrowdsale, MintedCrowdsale, TimedCrowdsale
 
   function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
 
-
-    // We are in so early days, floating point operations are not quite there yet: https://ethereum.stackexchange.com/questions/8674/how-can-i-perform-float-type-division-in-solidity
-    // So instead rather than doing x3.5 we need to x7 and then /2 (YES, multiply by 7 and then divide by 2)
+    // Floating point operations are too expensive: https://ethereum.stackexchange.com/questions/8674/how-can-i-perform-float-type-division-in-solidity
+    // So instead rather than doing x3.5 we need to x14 and then /4 (YES, multiply by 14 and then divide by 4)
 
     uint16 multiply;
-    uint16 divide = 2;
+    uint16 divide = 4;
 
-    // 0-50    4x
-    // 50-100  3.5x
-    // 100-150 3x
-    // 150-200 2.5x
-    // 200-250 2x
-
-    if (weiRaised < 1 ether) {
-      multiply = 8;
-    } else if (weiRaised < 2 ether) {
-      multiply = 7;
-    } else if (weiRaised < 3 ether) {
-      multiply = 6;
-    } else if (weiRaised < 4 ether) {
-      multiply = 5;
+    if (weiRaised < 100 ether) {
+      multiply = 16;
+    } else if (weiRaised < 150 ether) {
+      multiply = 15;
+    } else if (weiRaised < 200 ether) {
+      multiply = 14;
+    } else if (weiRaised < 250 ether) {
+      multiply = 13;    
+    } else if (weiRaised < 300 ether) {
+      multiply = 12;
+    } else if (weiRaised < 350 ether) {
+      multiply = 11;
+    } else if (weiRaised < 400 ether) {
+      multiply = 10;
+    } else if (weiRaised < 450 ether) {
+      multiply = 9;    
     } else {
-      multiply = 4;
-    }
+      multiply = 8;
+    } 
 
     return _weiAmount.mul(rate).mul(multiply).div(divide);
   }
+
+  // Please note the allocation
+  // Omega: £5k
+  // Wiktor: £2k
+  // (highly respecting my investors in the previous project, "carry on" their involvement here)
 
 }
